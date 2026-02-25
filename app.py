@@ -9,7 +9,6 @@ class LoginSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     risk_score = db.Column(db.Float)
 
-@app.before_first_request
 def create_tables():
     db.create_all()
 

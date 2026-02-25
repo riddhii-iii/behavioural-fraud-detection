@@ -3,6 +3,8 @@
 import pandas as pd
 import numpy as np
 import random
+import os
+os.makedirs("data", exist_ok=True)
 
 def generate_data(samples=1000):
     data = []
