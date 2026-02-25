@@ -12,58 +12,69 @@
         <button type="submit">Login</button>
     </form>
 
-    <script>
-        let keyTimings = [];
-        let lastKeyTime = null;
-        let mouseMovements = [];
-        let clicks = 0;
+   <script>
+    let keyTimings = [];
+    let lastKeyTime = null;
+    let mouseMovements = [];
+    let clicks = 0;
 
-        // Capture keystrokes
-        document.getElementById("password").addEventListener("keydown", function(e) {
-            let now = Date.now();
+    const passwordField = document.getElementById("password");
 
-            if (lastKeyTime !== null) {
-                keyTimings.push(now - lastKeyTime);
-            }
+    passwordField.addEventListener("keydown", function() {
+        let now = Date.now();
 
-            lastKeyTime = now;
+        if (lastKeyTime !== null) {
+            keyTimings.push(now - lastKeyTime);
+        }
+
+        lastKeyTime = now;
+    });
+
+    document.addEventListener("mousemove", function(e) {
+        mouseMovements.push({
+            x: e.clientX,
+            y: e.clientY,
+            time: Date.now()
         });
+    });
 
-        // Capture mouse movement
-        document.addEventListener("mousemove", function(e) {
-            mouseMovements.push({
-                x: e.clientX,
-                y: e.clientY,
-                time: Date.now()
-            });
+    document.addEventListener("click", function() {
+        clicks += 1;
+    });
+
+    document.getElementById("loginForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+
+        if (keyTimings.length === 0) {
+            alert("Please type password properly.");
+            return;
+        }
+
+        let avgTypingTime = keyTimings.reduce((a,b)=>a+b,0) / keyTimings.length;
+
+        let payload = {
+            avg_key_hold: avgTypingTime / 1000,
+            typing_speed: 1 / (avgTypingTime / 1000),
+            mouse_speed: mouseMovements.length,
+            click_rate: clicks,
+            session_duration: keyTimings.length
+        };
+
+        fetch("/predict", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert("Risk Score: " + data.risk_score + 
+                  "\nResult: " + data.prediction);
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            alert("Something went wrong. Check console.");
         });
-
-        // Capture clicks
-        document.addEventListener("click", function() {
-            clicks += 1;
-        });
-
-        document.getElementById("loginForm").addEventListener("submit", function(e) {
-            e.preventDefault();
-
-            let avgTypingSpeed = keyTimings.reduce((a,b)=>a+b,0)/keyTimings.length;
-            let mouseSpeed = mouseMovements.length;
-            let clickRate = clicks;
-
-            fetch("/predict", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({
-                    avg_key_hold: avgTypingSpeed/1000,
-                    typing_speed: 1/(avgTypingSpeed/1000),
-                    mouse_speed: mouseSpeed,
-                    click_rate: clickRate,
-                    session_duration: keyTimings.length
-                })
-            })
-            .then(res => res.json())
-            .then(data => alert(data.prediction));
-        });
-    </script>
+    });
+</script>
 </body>
 </html>
