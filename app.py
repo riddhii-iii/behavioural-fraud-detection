@@ -1,16 +1,16 @@
 from flask import Flask, request, jsonify, render_template
+import os
+from src.data_collection import generate_data
+from src.model_training import train_model
 from src.predict import predict_risk
-from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///sessions.db"
-db = SQLAlchemy(app)
-class LoginSession(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    risk_score = db.Column(db.Float)
 
-def create_tables():
-    db.create_all()
+# Always regenerate dataset + retrain
+if not os.path.exists("data/behavioural_data.csv"):
+    generate_data(1000)
+
+train_model()
 
 @app.route("/")
 def home():
@@ -18,16 +18,18 @@ def home():
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    data = request.json
-    risk_score = predict_risk(data)
-    session = LoginSession(risk_score=risk_score)
-    db.session.add(session)
-    db.session.commit()
+    try:
+        data = request.json
+        risk_score = predict_risk(data)
 
-    return jsonify({
-        "risk_score": risk_score,
-        "prediction": "High Risk ⚠️" if risk_score > 0.7 else "Low Risk ✅"
-    })
+        return jsonify({
+            "risk_score": risk_score,
+            "prediction": "High Risk ⚠️" if risk_score > 0.7 else "Low Risk ✅"
+        })
+
+    except Exception as e:
+        print("ERROR:", e)
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
