@@ -1,10 +1,19 @@
-from flask import Flask
+from flask import Flask, request, jsonify
+import os
 
 app = Flask(__name__)
 
+model = None
+
 @app.route("/")
 def home():
-    return "App is running successfully!"
+    return "Server Running"
 
-if __name__ == "__main__":
-    app.run()
+@app.route("/predict", methods=["POST"])
+def predict():
+    global model
+
+    if model is None:
+        return jsonify({"error": "Model not loaded yet"}), 500
+
+    return jsonify({"message": "Predict working"})
